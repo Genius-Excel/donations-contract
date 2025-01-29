@@ -8,6 +8,8 @@
   (tuple (name (string-ascii 64)) (target uint) (raised uint) (recipient principal))
 )
 
+
+
 (define-non-fungible-token donation-certificate uint)
 (define-data-var next-cause-id uint u1)
 (define-data-var next-certificate-id uint u1)
@@ -52,6 +54,48 @@
   )
 )
 
+(define-public (get-causes)
+  (let ((cause-ids (map-keys causes)))
+    (ok (map cause-ids (lambda (id) (unwrap! (map-get? causes {cause-id: id}) (err u404))))))
+)
+
+(define-private (filter-donations (cause-id uint))
+  (let ((donations-list (map-entries donations)))
+    (let ((filtered-donations (list)))
+      (foreach donation donations-list
+        (let ((entry-cause-id (get cause-id (get key donation))))
+          (if (is-eq entry-cause-id cause-id)
+            (let ((filtered-donations (cons donation filtered-donations)))
+              (var-set filtered-donations filtered-donations))
+            (var-set filtered-donations filtered-donations))))
+      filtered-donations)))
+
+(define-public (get-donations (cause-id uint))
+  (ok (filter-donations cause-id))
+)
+
+(define-public (get-cause (cause-id uint))
+  (let ((cause (map-get? causes {cause-id: cause-id})))
+    (match cause
+      c  ;; 'c' will contain the value if 'cause' is (some ...)
+      (ok c)
+      ;; None case
+      (err u404)  ;; Changed to return a uint error code
+    )
+  )
+)
+
+(define-public (get-certificate (certificate-id uint))
+  (let ((owner (nft-owner? donation-certificate certificate-id)))
+    (match owner
+      o  ;; 'o' will contain the value if 'owner' is (some ...)
+      (ok o)
+      ;; None case
+      (err u404)  ;; Changed to return a uint error code
+    )
+  )
+)
+
 (define-public (disburse-funds (cause-id uint))
   (let ((cause (map-get? causes {cause-id: cause-id})))
     (match cause
@@ -59,7 +103,7 @@
       (if (>= (get raised c) (get target c))
         (begin
           (try! (asserts! (is-eq tx-sender (get recipient c)) (err u403)))  ;; Changed to return a uint error code
-          (try! (as-contract (stx-transfer? (get raised c) tx-sender (get recipient c))))
+          (try! (as-contract (stx-transfer? (get raised c) (get recipient c)))))
           (map-delete causes {cause-id: cause-id})
           (ok u1)  ;; Changed to return a uint
         )
@@ -69,4 +113,3 @@
       (err u404)  ;; Changed to return a uint error code
     )
   )
-)
