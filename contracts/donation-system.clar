@@ -56,32 +56,63 @@
 
 (define-private (map-to-list (map (map uint uint)))
   (let ((entries (list)))
-    (foreach key (map-keys map)
+    (map-to-list-helper (map-keys-helper map) entries)))
+
+(define-private (map-to-list-helper (keys (list uint)) (entries (list (tuple (key uint) (value uint)))))
+  (if (is-none keys)
+    entries
+    (let ((key (unwrap-panic (element-at keys u0))))
       (let ((value (map-get? map {key: key})))
         (match value
-          entry (let ((entries (cons {key: key, value: entry} entries)))
-                  (var-set entries entries))
-          (none (var-set entries entries)))))
-    entries))
+          entry (map-to-list-helper (cdr keys) (cons {key: key, value: entry} entries))
+          none (map-to-list-helper (cdr keys) entries))))))
 
-(define-private (map-keys (map (map uint uint)))
+(define-private (map-keys-helper (map (map uint uint)))
   (let ((keys (list)))
-    (foreach key (map-entries map)
-      (let ((keys (cons (get key key) keys)))
-        (var-set keys keys)))
-    keys))
+    (map-keys-helper-rec (map-entries-helper map) keys)))
+
+(define-private (map-keys-helper-rec (entries (list (tuple (key uint) (value uint)))) (keys (list uint)))
+  (if (is-none entries)
+    keys
+    (let ((entry (unwrap-panic (element-at entries u0))))
+      (map-keys-helper-rec (cdr entries) (cons (get key entry) keys)))))
+
+(define-private (map-entries-helper (map (map uint uint)))
+  (let ((entries (list)))
+    (map-entries-helper-rec (map-keys-helper map) entries)))
+
+(define-private (map-entries-helper-rec (keys (list uint)) (entries (list (tuple (key uint) (value uint)))))
+  (if (is-none keys)
+    entries
+    (let ((key (unwrap-panic (element-at keys u0))))
+      (let ((value (map-get? map {key: key})))
+        (match value
+          entry (map-entries-helper-rec (cdr keys) (cons {key: key, value: entry} entries))
+          none (map-entries-helper-rec (cdr keys) entries))))))
 
 (define-private (filter-donations (cause-id uint))
   (let ((donations-list (map-to-list donations)))
     (let ((filtered-donations (list)))
-      (foreach donation donations-list
-        (let ((entry-cause-id (get cause-id (get key donation))))
-          (if (is-eq entry-cause-id cause-id)
-            (let ((filtered-donations (cons donation filtered-donations)))
-              (var-set filtered-donations filtered-donations))
-            (var-set filtered-donations filtered-donations))))
-      filtered-donations)))
+      (filter-donations-helper donations-list filtered-donations cause-id))))
 
+(define-private (filter-donations-helper (donations-list (list (tuple (key uint) (value uint)))) (filtered-donations (list (tuple (key uint) (value uint)))) (cause-id uint))
+  (if (is-none donations-list)
+    filtered-donations
+    (let ((donation (unwrap-panic (element-at donations-list u0))))
+      (let ((entry-cause-id (get cause-id (get key donation))))
+        (if (is-eq entry-cause-id cause-id)
+          (filter-donations-helper (cdr donations-list) (cons donation filtered-donations) cause-id)
+          (filter-donations-helper (cdr donations-list) filtered-donations cause-id))))))
+
+(define-public (get-donations (cause-id uint))
+  (ok (filter-donations cause-id))
+)
+
+(define-public (get-causes)
+  (let ((cause-entries (map-to-list causes)))
+    (ok (map cause-entries (lambda (entry) (get cause-id (get key entry)))))
+  )
+)
       
 (define-public (get-donations (cause-id uint))
   (ok (filter-donations cause-id))
