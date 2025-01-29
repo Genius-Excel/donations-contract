@@ -21,7 +21,6 @@
     )
   )
 )
-
 (define-public (donate (cause-id uint) (amount uint))
   (let ((cause (map-get? causes {cause-id: cause-id})))
     (match cause
@@ -45,13 +44,12 @@
 
 (define-private (mint-certificate (donor principal) (cause-id uint))
   (let ((cert-id (var-get next-certificate-id)))
+    (begin
+      (try! (nft-mint? donation-certificate cert-id donor))
+      (var-set next-certificate-id (+ cert-id u1))
+      (ok cert-id)
+    )
   )
-)
-
-(begin
-  (try! (nft-mint? donation-certificate cert-id donor))
-  (var-set next-certificate-id (+ cert-id u1))
-  (ok cert-id)
 )
 
 (define-public (disburse-funds (cause-id uint))
