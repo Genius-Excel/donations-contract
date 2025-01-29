@@ -55,8 +55,9 @@
 )
 
 (define-public (get-causes)
-  (let ((cause-ids (map-keys causes)))
-    (ok (map cause-ids (lambda (id) (unwrap! (map-get? causes {cause-id: id}) (err u404))))))
+  (let ((cause-entries (map-to-list causes)))
+    (ok (map cause-entries (lambda (entry) (get cause-id (get key entry)))))
+  )
 )
 
 (define-private (filter-donations (cause-id uint))
@@ -68,7 +69,8 @@
             (let ((filtered-donations (cons donation filtered-donations)))
               (var-set filtered-donations filtered-donations))
             (var-set filtered-donations filtered-donations))))
-      filtered-donations)))
+      filtered-donations))
+)
 
 (define-public (get-donations (cause-id uint))
   (ok (filter-donations cause-id))
