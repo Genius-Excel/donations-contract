@@ -25,7 +25,7 @@
 (define-public (donate (cause-id uint) (amount uint))
   (let ((cause (map-get? causes {cause-id: cause-id})))
     (match cause
-      (some c
+      (some c)
         (if (> amount u0)
           (let ((new-raised (+ (get raised c) amount)))
             (begin
@@ -37,8 +37,7 @@
           )
           (err "Donation amount must be greater than zero")
         )
-      )
-      (none (err "Cause does not exist"))
+      none (err "Cause does not exist")
     )
   )
 )
@@ -56,7 +55,7 @@
 (define-public (disburse-funds (cause-id uint))
   (let ((cause (map-get? causes {cause-id: cause-id})))
     (match cause
-      (some c
+      (some c)
         (if (>= (get raised c) (get target c))
           (begin
             (asserts! (is-eq tx-sender (get recipient c)) (err "Unauthorized"))
@@ -66,8 +65,7 @@
           )
           (err "Target not reached yet")
         )
-      )
-      (none (err "Cause does not exist"))
+      none (err "Cause does not exist")
     )
   )
 )
