@@ -54,14 +54,25 @@
   )
 )
 
-(define-public (get-causes)
-  (let ((cause-entries (map-to-list causes)))
-    (ok (map cause-entries (lambda (entry) (get cause-id (get key entry)))))
-  )
-)
+(define-private (map-to-list (map (map uint uint)))
+  (let ((entries (list)))
+    (foreach key (map-keys map)
+      (let ((value (map-get? map {key: key})))
+        (match value
+          entry (let ((entries (cons {key: key, value: entry} entries)))
+                  (var-set entries entries))
+          (none (var-set entries entries)))))
+    entries))
+
+(define-private (map-keys (map (map uint uint)))
+  (let ((keys (list)))
+    (foreach key (map-entries map)
+      (let ((keys (cons (get key key) keys)))
+        (var-set keys keys)))
+    keys))
 
 (define-private (filter-donations (cause-id uint))
-  (let ((donations-list (map-entries donations)))
+  (let ((donations-list (map-to-list donations)))
     (let ((filtered-donations (list)))
       (foreach donation donations-list
         (let ((entry-cause-id (get cause-id (get key donation))))
@@ -69,9 +80,9 @@
             (let ((filtered-donations (cons donation filtered-donations)))
               (var-set filtered-donations filtered-donations))
             (var-set filtered-donations filtered-donations))))
-      filtered-donations))
-)
+      filtered-donations)))
 
+      
 (define-public (get-donations (cause-id uint))
   (ok (filter-donations cause-id))
 )
