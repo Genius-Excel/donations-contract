@@ -105,3 +105,129 @@
     )
   )
 )
+
+
+(define-public (donate (cause-id uint) (amount uint))
+  (let 
+    (
+      (cause (get-cause cause-id))
+    )
+    (match cause cause-data
+      (begin
+        ;; Input validation
+        (asserts! (> amount u0) ERR_INVALID_AMOUNT)
+        (try! (check-duplicate-donation tx-sender cause-id))
+        
+        ;; Check STX balance
+        (asserts! (>= (stx-get-balance tx-sender) amount) ERR_INSUFFICIENT_FUNDS)
+        
+        (let 
+          (
+            (new-raised (+ (get raised cause-data) amount))
+          )
+          (begin
+            ;; Verify we're not exceeding target
+            (asserts! (<= new-raised (get target cause-data)) ERR_INVALID_AMOUNT)
+            
+            ;; Process donation
+            (try! (stx-transfer? amount tx-sender (as-contract tx-sender)))
+            
+            (map-set donations 
+              {donor: tx-sender, cause-id: cause-id} 
+              {amount: amount, timestamp: stacks-block-height}
+            )
+            (map-set causes 
+              {cause-id: cause-id} 
+              (merge cause-data {raised: new-raised})
+            )
+            (try! (mint-certificate tx-sender cause-id))
+            (ok true)
+          )
+        )
+      )
+      ERR_NOT_FOUND
+    )
+  )
+)
+
+(define-public (get-cause-donations (cause-id uint))
+  (match (get-cause cause-id)
+    cause-data (ok cause-data)
+    ERR_NOT_FOUND
+  )
+)
+
+(define-public (disburse-funds (cause-id uint))
+  (let 
+    (
+      (cause (get-cause cause-id))
+    )
+    (match cause cause-data
+      (begin
+        ;; Authorization checks
+        (asserts! (is-eq tx-sender (get recipient cause-data)) ERR_UNAUTHORIZED)
+        
+        ;; Validate funds
+        (asserts! (>= (get raised cause-data) (get target cause-data)) ERR_INSUFFICIENT_FUNDS)
+        (asserts! (>= (stx-get-balance (as-contract tx-sender)) (get raised cause-data)) ERR_INSUFFICIENT_FUNDS)
+        
+        ;; Process disbursement
+        (try! (stx-transfer? (get raised cause-data) (as-contract tx-sender) (get recipient cause-data)))
+        (map-delete causes {cause-id: cause-id})
+        (ok true)
+      )
+      ERR_NOT_FOUND
+    )
+  )
+)
+
+;; Additional error codes
+(define-constant ERR_TARGET_TOO_LOW (err u410))
+(define-constant ERR_ALREADY_COMPLETED (err u411))
+
+;; Additional read-only functions
+(define-read-only (is-target-reached (cause-id uint))
+  (match (get-cause cause-id)
+    cause-data (ok (>= (get raised cause-data) (get target cause-data)))
+    ERR_NOT_FOUND
+  )
+)
+
+
+(define-private (get-donation-amount (cause-id uint))
+  (match (get-donation tx-sender cause-id)
+    donation (get amount donation)
+    u0
+  )
+)
+
+
+;; New public function to update target amount
+(define-public (update-target (cause-id uint) (new-target uint))
+  (let 
+    (
+      (cause (get-cause cause-id))
+    )
+    (match cause cause-data
+      (begin
+        ;; Authorization check
+        (asserts! (is-eq tx-sender (get recipient cause-data)) ERR_UNAUTHORIZED)
+        
+        ;; Validate new target
+        (asserts! (is-valid-target new-target) ERR_INVALID_TARGET)
+        (asserts! (> new-target (get target cause-data)) ERR_TARGET_TOO_LOW)
+        
+        ;; Check cause hasn't already reached its target
+        (asserts! (not (unwrap-panic (is-target-reached cause-id))) ERR_ALREADY_COMPLETED)
+        
+        ;; Update the target
+        (map-set causes 
+          {cause-id: cause-id} 
+          (merge cause-data {target: new-target})
+        )
+        (ok true)
+      )
+      ERR_NOT_FOUND
+    )
+  )
+)
