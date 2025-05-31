@@ -44,7 +44,7 @@
   )
 )
 
-
+;; Vlaidate target
 (define-read-only (is-valid-target (target uint))
   (> target u0)
 )
@@ -57,6 +57,7 @@
   )
 )
 
+;; Validate recipient
 (define-private (check-valid-recipient (recipient principal))
   (if (is-eq recipient tx-sender)
     (ok true)
@@ -96,6 +97,7 @@
   )
 )
 
+;; Issue certification
 (define-private (mint-certificate (donor principal) (cause-id uint))
   (let 
     (
