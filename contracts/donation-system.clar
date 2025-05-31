@@ -15,11 +15,13 @@
   (tuple (amount uint) (timestamp uint))
 )
 
+;; Map data
 (define-map causes 
   (tuple (cause-id uint)) 
   (tuple (name (string-ascii 64)) (target uint) (raised uint) (recipient principal))
 )
 
+;; Donations certs
 (define-non-fungible-token donation-certificate uint)
 (define-data-var next-cause-id uint u1)
 (define-data-var next-certificate-id uint u1)
