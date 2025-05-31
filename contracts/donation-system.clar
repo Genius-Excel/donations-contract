@@ -31,16 +31,19 @@
   (map-get? causes {cause-id: cause-id})
 )
 
+;; Principal donor
 (define-read-only (get-donation (donor principal) (cause-id uint))
   (map-get? donations {donor: donor, cause-id: cause-id})
 )
 
+;; Validate donations type
 (define-read-only (is-valid-name (name (string-ascii 64)))
   (and 
     (> (len name) u0)
     (<= (len name) u64)
   )
 )
+
 
 (define-read-only (is-valid-target (target uint))
   (> target u0)
