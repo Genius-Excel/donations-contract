@@ -15,11 +15,13 @@
   (tuple (amount uint) (timestamp uint))
 )
 
+;; Map data
 (define-map causes 
   (tuple (cause-id uint)) 
   (tuple (name (string-ascii 64)) (target uint) (raised uint) (recipient principal))
 )
 
+;; Donations certs
 (define-non-fungible-token donation-certificate uint)
 (define-data-var next-cause-id uint u1)
 (define-data-var next-certificate-id uint u1)
@@ -29,10 +31,12 @@
   (map-get? causes {cause-id: cause-id})
 )
 
+;; Principal donor
 (define-read-only (get-donation (donor principal) (cause-id uint))
   (map-get? donations {donor: donor, cause-id: cause-id})
 )
 
+;; Validate donations type
 (define-read-only (is-valid-name (name (string-ascii 64)))
   (and 
     (> (len name) u0)
@@ -40,6 +44,7 @@
   )
 )
 
+;; Vlaidate target
 (define-read-only (is-valid-target (target uint))
   (> target u0)
 )
@@ -52,6 +57,7 @@
   )
 )
 
+;; Validate recipient
 (define-private (check-valid-recipient (recipient principal))
   (if (is-eq recipient tx-sender)
     (ok true)
@@ -91,6 +97,7 @@
   )
 )
 
+;; Issue certification
 (define-private (mint-certificate (donor principal) (cause-id uint))
   (let 
     (
